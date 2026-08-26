@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     upload_path: str = "./storage/uploads"
     chunk_size: int = 800
     chunk_overlap: int = 120
+    embedding_batch_size: int = 16
     top_k: int = 5
     max_pdf_size_mb: int = 25
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
