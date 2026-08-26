@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     chat_model: str = "qwen2.5:0.5b"
     embedding_model: str = "nomic-embed-text"
     chroma_path: str = "./storage/chroma"
+    database_url: str = "sqlite+aiosqlite:///./storage/rag.db"
     upload_path: str = "./storage/uploads"
     chunk_size: int = 800
     chunk_overlap: int = 120

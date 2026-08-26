@@ -9,6 +9,8 @@ cp .env.example .env
 uvicorn main:app --reload
 ```
 
+The default metadata database is SQLite at `./storage/rag.db`.
+
 The API is available at `http://localhost:8000` and its OpenAPI UI is at `/docs`.
 
 - `GET /health/live`
@@ -18,4 +20,4 @@ The API is available at `http://localhost:8000` and its OpenAPI UI is at `/docs`
 - `POST /api/v1/documents/{document_id}/questions`
 - `DELETE /api/v1/documents/{document_id}`
 
-Ollama must have `qwen2.5` and `nomic-embed-text` available locally.
+Ollama must have `qwen2.5:0.5b` and `nomic-embed-text` available locally.
