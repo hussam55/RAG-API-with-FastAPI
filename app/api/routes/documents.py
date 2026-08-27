@@ -1,11 +1,13 @@
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 
-from app.core.config import get_settings
+from app.api.deps import get_document_service, get_ingestion_service, get_settings_provider
+from app.core.config import Settings
 from app.schemas.documents import DocumentDetail, DocumentResponse
 from app.services.document_service import DocumentService
+from app.services.errors import DocumentDeletionError
 from app.services.ingestion_service import IngestionService
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -37,8 +39,13 @@ async def save_upload(file: UploadFile, destination: Path, max_bytes: int) -> No
 
 
 @router.post("", response_model=DocumentResponse, status_code=status.HTTP_202_ACCEPTED)
-async def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(...)) -> DocumentResponse:
-    settings = get_settings()
+async def upload_document(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    settings: Settings = Depends(get_settings_provider),
+    document_service: DocumentService = Depends(get_document_service),
+    ingestion_service: IngestionService = Depends(get_ingestion_service),
+) -> DocumentResponse:
 
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=415, detail="Only PDF files are supported")
@@ -50,11 +57,11 @@ async def upload_document(background_tasks: BackgroundTasks, file: UploadFile = 
     await save_upload(file, file_path, settings.max_pdf_size_mb * 1024 * 1024)
 
     try:
-        document = await DocumentService().create_document(document_id, file.filename or "document.pdf", str(file_path))
+        document = await document_service.create_document(document_id, file.filename or "document.pdf", str(file_path))
     except Exception:
         file_path.unlink(missing_ok=True)
         raise
-    background_tasks.add_task(IngestionService().ingest_document, document_id, file_path)
+    background_tasks.add_task(ingestion_service.ingest_document, document_id, file_path)
     return document
 
 
@@ -67,7 +74,13 @@ async def get_document(document_id: str) -> DocumentDetail:
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_document(document_id: str) -> None:
-    deleted = await DocumentService().delete_document(document_id)
+async def delete_document(
+    document_id: str,
+    document_service: DocumentService = Depends(get_document_service),
+) -> None:
+    try:
+        deleted = await document_service.delete_document(document_id)
+    except DocumentDeletionError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     if deleted is None:
         raise HTTPException(status_code=404, detail="Document not found")

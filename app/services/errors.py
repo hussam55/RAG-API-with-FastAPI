@@ -10,3 +10,7 @@ class DocumentNotReadyError(Exception):
 
 class ModelUnavailableError(Exception):
     pass
+
+
+class DocumentDeletionError(Exception):
+    pass
