@@ -66,8 +66,8 @@ async def upload_document(
 
 
 @router.get("/{document_id}", response_model=DocumentDetail)
-async def get_document(document_id: str) -> DocumentDetail:
-    document = await DocumentService().get_document(document_id)
+async def get_document(document_id: str, document_service: DocumentService = Depends(get_document_service)) -> DocumentDetail:
+    document = await document_service.get_document(document_id)
     if document is None:
         raise HTTPException(status_code=404, detail="Document not found")
     return document
